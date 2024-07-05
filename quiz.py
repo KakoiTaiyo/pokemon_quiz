@@ -2,7 +2,6 @@ import streamlit as st
 import requests
 import random
 import json
-from PIL import Image
 
 # PokeAPIからポケモンのデータを取得する関数
 def get_pokemon_data(pokemon_name):
