@@ -2,6 +2,7 @@ import streamlit as st
 import requests
 import random
 import json
+from PIL import Image
 
 # PokeAPIからポケモンのデータを取得する関数
 def get_pokemon_data(pokemon_name):
@@ -34,6 +35,17 @@ def get_japanese_name(english_name):
             if name_info['language']['name'] == 'ja-Hrkt':
                 return name_info['name']
     return None
+
+# ポケモンの見た目の画像のURLを取得する関数
+def get_pokemon_sprites(pokemon_name):
+    url = f"https://pokeapi.co/api/v2/pokemon/{pokemon_name.lower()}"
+    response = requests.get(url)
+    if response.status_code == 200:
+        data = response.json()
+        pokemon_sprites_url = data["sprites"]["front_default"]
+        return pokemon_sprites_url
+    else:
+        return None
 
 # 全特性の日本語と英語の対応を取得する関数
 def get_ability_translation():
@@ -77,11 +89,13 @@ if st.button("新しいクイズを表示"):
 
 # セッション状態からポケモンの名前を取得
 pokemon_name = st.session_state.get('pokemon_name')
+pokemon_sprites_url = get_pokemon_sprites(pokemon_name)
 
 if pokemon_name:
     japanese_pokemon_name = get_japanese_name(pokemon_name)
     if japanese_pokemon_name:
         st.write(f"### ポケモン名: **{japanese_pokemon_name}**")
+        st.image(pokemon_sprites_url)
 
         # ポケモンデータの取得
         pokemon_data = get_pokemon_data(pokemon_name)
@@ -100,12 +114,12 @@ if pokemon_name:
 
             # ユーザーの回答入力
             user_answer_japanese_types = st.multiselect(
-                "このポケモンのタイプは何でしょうか？",
+                "このポケモンのタイプは何でしょう？",
                 list(type_translation.keys())
             )
             
             user_answer_japanese_abilities = st.multiselect(
-                "このポケモンの特性は何でしょうか？",
+                "このポケモンの特性は何でしょう？",
                 list(ability_translation.keys())
             )
 
