@@ -66,7 +66,7 @@ def get_ability_translation():
     #     return ability_translation
     # else:
     #     return {}
-    with open('./abilities/all.json', 'r') as f:
+    with open('all.json', 'r') as f:
         return json.load(f)
 
 st.title("ポケモンクイズ")
