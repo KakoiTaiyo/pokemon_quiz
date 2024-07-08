@@ -3,6 +3,27 @@ import requests
 import random
 import json
 
+
+# # ユーザー名: スコア
+# # ユーザー辞書の初期化
+# if 'users' not in st.session_state:
+#     st.session_state.users = {}
+
+# # ユーザー名を入力
+# username = st.sidebar.text_input("ユーザー名を入力してください")
+
+# if st.sidebar.button('追加する'):
+#     if username:
+#         if username not in st.session_state.users:
+#             st.session_state.users[username] = 0
+#             st.sidebar.success(f"ようこそ{username}さん！")
+#         else :
+#             st.sidebar.success(f"{username}さんはすでに登録されています")
+#         st.sidebar.write(f"あなたのスコアは{st.session_state.users[username]}です")
+#     else:
+#         st.sidebar.error("ユーザー名が入力されていません")
+        
+
 # PokeAPIからポケモンのデータを取得する関数
 def get_pokemon_data(pokemon_name):
     url = f"https://pokeapi.co/api/v2/pokemon/{pokemon_name.lower()}"
@@ -77,8 +98,8 @@ if 'pokemon_name' not in st.session_state or st.session_state.pokemon_name is No
     st.session_state.pokemon_name = get_random_pokemon_name()
 
 # セッション状態に特性の翻訳が保存されていない場合、取得して保存
-if 'ability_translation' not in st.session_state:
-    st.session_state.ability_translation = get_ability_translation()
+# if 'ability_translation' not in st.session_state:
+#     st.session_state.ability_translation = get_ability_translation()
 
 # リセットボタンが押されたとき、新しいポケモンを取得
 if st.button("新しいクイズを表示"):
@@ -88,6 +109,7 @@ if st.button("新しいクイズを表示"):
 
 # セッション状態からポケモンの名前を取得
 pokemon_name = st.session_state.get('pokemon_name')
+# ポケモンの画像のURLを取得
 pokemon_sprites_url = get_pokemon_sprites(pokemon_name)
 
 if pokemon_name:
@@ -101,13 +123,13 @@ if pokemon_name:
         if pokemon_data:
             # ポケモンのタイプ
             pokemon_types = [t['type']['name'] for t in pokemon_data['types']]
-            type_translation = {'ノーマル': 'normal', 'ほのお': 'fire', 'みず': 'water', 'くさ': 'grass', 'でんき': 'electric', 'こおり': 'ice', 
-                                'かくとう': 'fighting', 'どく': 'poison', 'じめん': 'ground', 'ひこう': 'flying', 'エスパー': 'psychic', 'むし': 'bug', 
-                                'いわ': 'rock', 'ゴースト': 'ghost', 'ドラゴン': 'dragon', 'あく': 'dark', 'はがね': 'steel', 'フェアリー': 'fairy'}
-
             # ポケモンの特性
             pokemon_abilities = [a['ability']['name'] for a in pokemon_data['abilities']]
             
+            # タイプの日本語と英語の対応表
+            type_translation = {'ノーマル': 'normal', 'ほのお': 'fire', 'みず': 'water', 'くさ': 'grass', 'でんき': 'electric', 'こおり': 'ice', 
+                                'かくとう': 'fighting', 'どく': 'poison', 'じめん': 'ground', 'ひこう': 'flying', 'エスパー': 'psychic', 'むし': 'bug', 
+                                'いわ': 'rock', 'ゴースト': 'ghost', 'ドラゴン': 'dragon', 'あく': 'dark', 'はがね': 'steel', 'フェアリー': 'fairy'}
             # 特性の日本語と英語の対応表を取得
             ability_translation = get_ability_translation()
 
@@ -116,7 +138,6 @@ if pokemon_name:
                 "このポケモンのタイプは何でしょう？",
                 list(type_translation.keys())
             )
-            
             user_answer_japanese_abilities = st.multiselect(
                 "このポケモンの特性は何でしょう？",
                 list(ability_translation.keys())
