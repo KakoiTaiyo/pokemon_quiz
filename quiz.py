@@ -150,20 +150,27 @@ if pokemon_name:
             if st.button("回答を確認"):
                 types_correct = set(user_answer_types) == set(pokemon_types)
                 abilities_correct = set(user_answer_abilities) == set(pokemon_abilities)
-                
+
                 if types_correct and abilities_correct:
                     st.success(f"正解です！ {japanese_pokemon_name} のタイプは {', '.join(user_answer_japanese_types)} で、特性は {', '.join(user_answer_japanese_abilities)} です。")
                 else:
-                    if not types_correct:
-                        st.error(f"タイプが不正解です。 {japanese_pokemon_name} のタイプは {', '.join(user_answer_japanese_types)} ではありません。")
-                    if not abilities_correct:
-                        st.error(f"特性が不正解です。 {japanese_pokemon_name} の特性は {', '.join(user_answer_japanese_abilities)} ではありません。")
+                    if not user_answer_japanese_types:
+                        st.warning("タイプを回答してください。")
+                    else:
+                        if not types_correct:
+                            st.error(f"タイプが不正解です。 {japanese_pokemon_name} のタイプは {', '.join(user_answer_japanese_types)} ではありません。")
+                    if not user_answer_japanese_abilities:
+                        st.warning("特性を回答してください。")
+                    else:
+                        if not abilities_correct:
+                            st.error(f"特性が不正解です。 {japanese_pokemon_name} の特性は {', '.join(user_answer_japanese_abilities)} ではありません。")          
+
         else:
-            st.error("ポケモンデータの取得に失敗しました。再試行してください。")
+            st.warning("ポケモンデータの取得に失敗しました。再試行してください。")
         
     else:
-        st.error("ポケモンの日本語名の取得に失敗しました。再試行してください。")
+        st.warning("ポケモンの日本語名の取得に失敗しました。再試行してください。")
 else:
-    st.error("ポケモンデータの取得に失敗しました。再試行してください。")
+    st.warning("ポケモンデータの取得に失敗しました。再試行してください。")
 
 
