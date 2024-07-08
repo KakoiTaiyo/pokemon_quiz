@@ -151,6 +151,9 @@ if pokemon_name:
                 types_correct = set(user_answer_types) == set(pokemon_types)
                 abilities_correct = set(user_answer_abilities) == set(pokemon_abilities)
 
+                partial_types_correct = set(user_answer_types).issubset(set(pokemon_types))
+                partial_abilities_correct = set(user_answer_abilities).issubset(set(pokemon_abilities))
+
                 if types_correct and abilities_correct:
                     st.success(f"正解です！ {japanese_pokemon_name} のタイプは {', '.join(user_answer_japanese_types)} で、特性は {', '.join(user_answer_japanese_abilities)} です。")
                 else:
@@ -158,12 +161,24 @@ if pokemon_name:
                         st.warning("タイプを回答してください。")
                     else:
                         if not types_correct:
-                            st.error(f"タイプが不正解です。 {japanese_pokemon_name} のタイプは {', '.join(user_answer_japanese_types)} ではありません。")
+                            if partial_types_correct:
+                                st.error(f"不十分です。 {japanese_pokemon_name} のタイプは {', '.join(user_answer_japanese_types)} だけではありません。")
+                            else:
+                                st.error(f"タイプが不正解です。 {japanese_pokemon_name} のタイプは {', '.join(user_answer_japanese_types)} ではありません。")
+                        else:
+                            st.success(f"タイプは正解です！ {japanese_pokemon_name} のタイプは {', '.join(user_answer_japanese_types)} です。")
+
                     if not user_answer_japanese_abilities:
                         st.warning("特性を回答してください。")
                     else:
                         if not abilities_correct:
-                            st.error(f"特性が不正解です。 {japanese_pokemon_name} の特性は {', '.join(user_answer_japanese_abilities)} ではありません。")          
+                            if partial_abilities_correct:
+                                st.error(f"不十分です。 {japanese_pokemon_name} の特性は {', '.join(user_answer_japanese_abilities)} だけではありません。")
+                            else:
+                                st.error(f"特性が不正解です。 {japanese_pokemon_name} の特性は {', '.join(user_answer_japanese_abilities)} ではありません。")
+                        else:
+                            st.success(f"特性は正解です！ {japanese_pokemon_name} の特性は {', '.join(user_answer_japanese_abilities)} です。")
+                                      
 
         else:
             st.warning("ポケモンデータの取得に失敗しました。再試行してください。")
