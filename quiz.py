@@ -87,7 +87,8 @@ def get_ability_translation():
     #     return ability_translation
     # else:
     #     return {}
-    with open('all.json', 'r') as f:
+    
+    with open('all.json', 'r' ,encoding='utf-8') as f:
         return json.load(f)
 
 st.title("ポケモンクイズ")
@@ -177,8 +178,14 @@ if pokemon_name:
                             else:
                                 st.error(f"特性が不正解です。 {japanese_pokemon_name} の特性は {', '.join(user_answer_japanese_abilities)} ではありません。")
                         else:
-                            st.success(f"特性は正解です！ {japanese_pokemon_name} の特性は {', '.join(user_answer_japanese_abilities)} です。")
-                                      
+                            st.success(f"特性は正解です！ {japanese_pokemon_name} の特性は {', '.join(user_answer_japanese_abilities)} です。")                        
+
+            if st.button("正解を表示"):
+                type_translation_reversed = {v: k for k, v in type_translation.items()}
+                ability_translation_reversed = {v: k for k, v in ability_translation.items()}
+                correct_japanese_types = [type_translation_reversed[en_type] for en_type in pokemon_types]
+                correct_japanese_abilities = [ability_translation_reversed[en_ability] for en_ability in pokemon_abilities]
+                st.info(f"正解はタイプは {', '.join(correct_japanese_types)} で、特性は {', '.join(correct_japanese_abilities)} でした。")
 
         else:
             st.warning("ポケモンデータの取得に失敗しました。再試行してください。")
