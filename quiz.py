@@ -42,10 +42,10 @@ if st.sidebar.button('ユーザーを追加'):
     else:
         st.sidebar.warning("名前を入力してください。")
 
-# 現在のユーザーのスコアを表示
+# 現在のユーザーを初期化
 if 'current_user' not in st.session_state:
     st.session_state.current_user = None
-
+# 現在のユーザーのスコアを表示
 if st.session_state.current_user is not None:
     c.execute('SELECT score FROM users WHERE name = ?', (st.session_state.current_user,))
     score = c.fetchone()[0]
@@ -150,23 +150,19 @@ if 'pokemon_name' not in st.session_state or st.session_state.pokemon_name is No
 
 # リセットボタンが押されたとき、新しいポケモンを取得
 if st.button("次のクイズへ"):
-    st.session_state.pokemon_name = get_random_pokemon_name()
-    st.session_state.user_answer_types = []
-    st.session_state.user_answer_abilities = []
+    reset_quiz()
 
-# セッション状態からポケモンの名前を取得
-pokemon_name = st.session_state.get('pokemon_name')
-# ポケモンの画像のURLを取得
-pokemon_sprites_url = get_pokemon_sprites(pokemon_name)
-
-if pokemon_name:
-    japanese_pokemon_name = get_japanese_name(pokemon_name)
+if st.session_state.pokemon_name:
+    # ポケモンの日本語名を取得
+    japanese_pokemon_name = get_japanese_name(st.session_state.pokemon_name)
+    # ポケモンの画像のURLを取得
+    pokemon_sprites_url = get_pokemon_sprites(st.session_state.pokemon_name)
     if japanese_pokemon_name:
         st.write(f"### {st.session_state.quiz_count + 1}問目: **{japanese_pokemon_name}**")
         st.image(pokemon_sprites_url)
 
         # ポケモンデータの取得
-        pokemon_data = get_pokemon_data(pokemon_name)
+        pokemon_data = get_pokemon_data(st.session_state.pokemon_name)
         if pokemon_data:
             # ポケモンのタイプ
             pokemon_types = [t['type']['name'] for t in pokemon_data['types']]
@@ -242,6 +238,7 @@ if pokemon_name:
                     conn.commit()
                     st.session_state.quiz_count = 0
                     st.session_state.score = 0
+                    st.button("終了")
                 else:
                     st.write(f"#####  現在のスコアは {st.session_state.score} / {st.session_state.quiz_count} です。")
 
