@@ -22,9 +22,7 @@ def add_user(name):
         conn.commit()
         st.sidebar.write(f'{name} さんが追加されました。')
     except sqlite3.IntegrityError:
-        c.execute('SELECT score FROM users WHERE name = ?', (name,))
-        score = c.fetchone()[0]
-        st.sidebar.write(f'{name} さんはすでに登録されています。前回のスコアは {score} です。')
+        st.sidebar.write(f'{name} さんはすでに登録されています。')
 
 # データベースにテーブルを作成する
 c.execute('''
@@ -38,7 +36,23 @@ c.execute('''
 # ユーザーの追加
 name = st.sidebar.text_input('ユーザー名')
 if st.sidebar.button('ユーザーを追加'):
-    add_user(name)
+    if name:
+        add_user(name)
+        st.session_state.current_user = name
+    else:
+        st.sidebar.warning("名前を入力してください。")
+
+# 現在のユーザーのスコアを表示
+if 'current_user' not in st.session_state:
+    st.session_state.current_user = None
+
+if st.session_state.current_user is not None:
+    c.execute('SELECT score FROM users WHERE name = ?', (st.session_state.current_user,))
+    score = c.fetchone()[0]
+    st.sidebar.write(f' {st.session_state.current_user} さんの前回のスコアは {score} です。')
+else:
+    st.sidebar.write("ユーザー名を入力してください。")
+
 
 # データの表示
 # show_data()
@@ -124,7 +138,7 @@ def reset_quiz():
     st.session_state.user_answer_abilities = []
 
 st.title("ポケモンクイズ")
-st.write("ランダムなポケモンのタイプと特性を当ててみてください！  \nタイプと特性を両方正解で１ポイント！  \n全５問のスコアが記録されます！")
+st.write("ランダムで表示されるポケモンのタイプと特性を当ててみてください！  \nタイプと特性を両方正解で１ポイント！  \n全５問のスコアが記録されます！")
 
 # セッション状態にポケモンの名前が保存されていない場合、新しいポケモンを取得
 if 'pokemon_name' not in st.session_state or st.session_state.pokemon_name is None:
@@ -180,7 +194,7 @@ if pokemon_name:
             user_answer_types = [type_translation[ja_type] for ja_type in user_answer_japanese_types]
             user_answer_abilities = [ability_translation[ja_ability] for ja_ability in user_answer_japanese_abilities]
 
-            if st.button("回答を確認"):
+            if st.button("回答を提出"):
                 types_correct = set(user_answer_types) == set(pokemon_types)
                 abilities_correct = set(user_answer_abilities) == set(pokemon_abilities)
 
@@ -223,11 +237,13 @@ if pokemon_name:
                 st.session_state.quiz_count += 1
 
                 if st.session_state.quiz_count >= 5:
-                    st.write(f"あなたの最終スコアは {st.session_state.score} / 5 です。")
+                    st.write(f"#####  あなたの最終スコアは {st.session_state.score} / 5 です。")
                     c.execute('UPDATE users SET score = ? WHERE name = ?', (st.session_state.score, name))
                     conn.commit()
                     st.session_state.quiz_count = 0
                     st.session_state.score = 0
+                else:
+                    st.write(f"#####  現在のスコアは {st.session_state.score} / {st.session_state.quiz_count} です。")
 
                 st.write("[次のクイズへ]を押してください")    
 
@@ -235,7 +251,7 @@ if pokemon_name:
             st.warning("ポケモンデータの取得に失敗しました。再試行してください。")
         
     else:
-        st.warning("ポケモンの日本語名の取得に失敗しました。再試行してください。")
+        st.warning("ポケモンデータの取得に失敗しました。再試行してください。")
 else:
     st.warning("ポケモンデータの取得に失敗しました。再試行してください。")
 
