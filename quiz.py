@@ -53,7 +53,6 @@ if st.session_state.current_user is not None:
 else:
     st.sidebar.write("ユーザー名を入力してください。")
 
-
 # データの表示
 # show_data()
 
@@ -182,7 +181,7 @@ if st.session_state.pokemon_name:
                 list(type_translation.keys())
             )
             user_answer_japanese_abilities = st.multiselect(
-                "このポケモンの特性は何でしょう？",
+                f"このポケモンの特性は何でしょう？(ヒント：特性は {len(set(pokemon_abilities))} つ)",
                 list(ability_translation.keys())
             )
 
