@@ -61,7 +61,24 @@ if 'quiz_count' not in st.session_state:
     st.session_state.quiz_count = 0
 if 'score' not in st.session_state:
     st.session_state.score = 0
-        
+if 'quiz_started' not in st.session_state:
+    st.session_state.quiz_started = False
+if 'answer_disabled' not in st.session_state:
+    st.session_state.answer_disabled = False
+if 'pokemon_names' not in st.session_state:
+    st.session_state.pokemon_names = []
+
+# 回答ボタンを連続で押せなくする関数
+def disable_answer():
+    st.session_state.answer_disabled = True
+# スタートボタンを切り替える関数
+def toggle_quiz_started():
+    st.session_state.quiz_started = not st.session_state.quiz_started
+# コールバック用の関数
+def quiz_start():
+    toggle_quiz_started()
+    st.session_state.pokemon_names = get_random_pokemon_names()
+    reset_quiz()
 
 # PokeAPIからポケモンのデータを取得する関数
 def get_pokemon_data(pokemon_name):
@@ -72,17 +89,17 @@ def get_pokemon_data(pokemon_name):
     else:
         return None
 
-# ランダムなポケモンの名前を取得する関数
-def get_random_pokemon_name():
+# ランダムなポケモン5匹の名前を取得する関数
+def get_random_pokemon_names(count=5):
     url = "https://pokeapi.co/api/v2/pokemon?limit=1025"
     response = requests.get(url)
     if response.status_code == 200:
         data = response.json()
         all_pokemon = data['results']
-        random_pokemon = random.choice(all_pokemon)
-        return random_pokemon['name']
+        random_pokemon = random.sample(all_pokemon, count)
+        return [pokemon['name'] for pokemon in random_pokemon]
     else:
-        return None
+        return []
 
 # 日本語のポケモン名を取得する関数
 def get_japanese_name(english_name):
@@ -108,148 +125,129 @@ def get_pokemon_sprites(pokemon_name):
 
 # 全特性の日本語と英語の対応を取得する関数
 def get_ability_translation():
-    # url = "https://pokeapi.co/api/v2/ability?limit=307"
-    # response = requests.get(url)
-    # if response.status_code == 200:
-    #     data = response.json()
-    #     abilities = data['results']
-    #     ability_translation = {}
-    #     for ability in abilities:
-    #         ability_response = requests.get(ability['url'])
-    #         if ability_response.status_code == 200:
-    #             ability_data = ability_response.json()
-    #             english_name = ability_data['name']
-    #             for name_info in ability_data['names']:
-    #                 if name_info['language']['name'] == 'ja-Hrkt':
-    #                     japanese_name = name_info['name']
-    #                     ability_translation[japanese_name] = english_name
-    #     return ability_translation
-    # else:
-    #     return {}
-    
     with open('all.json', 'r' ,encoding='utf-8') as f:
         return json.load(f)
 
-# クイズをリセットする関数
+# 回答と回答権を戻す関数
 def reset_quiz():
-    st.session_state.pokemon_name = get_random_pokemon_name()
+    # st.session_state.pokemon_names = get_random_pokemon_names()
     st.session_state.user_answer_types = []
     st.session_state.user_answer_abilities = []
+    st.session_state.answer_disabled = False
 
 st.title("ポケモンクイズ")
 st.write("ランダムで表示されるポケモンのタイプと特性を当ててみてください！  \nタイプと特性を両方正解で１ポイント！  \n全５問のスコアが記録されます！")
 
-# セッション状態にポケモンの名前が保存されていない場合、新しいポケモンを取得
-if 'pokemon_name' not in st.session_state or st.session_state.pokemon_name is None:
-    st.session_state.pokemon_name = get_random_pokemon_name()
+if not st.session_state.quiz_started:
+    st.button("スタート", on_click=quiz_start)
+        # st.session_state.pokemon_names = get_random_pokemon_names()
+else:
+    # # セッション状態にポケモンの名前が保存されていない場合、新しいポケモンを取得
+    # if 'pokemon_names' not in st.session_state or st.session_state.pokemon_names is None:
+    #     st.session_state.pokemon_names = get_random_pokemon_names()
 
-# セッション状態に特性の翻訳が保存されていない場合、取得して保存
-# if 'ability_translation' not in st.session_state:
-#     st.session_state.ability_translation = get_ability_translation()
+    if st.session_state.pokemon_names:
+        # ポケモンの日本語名を取得
+        japanese_pokemon_name = get_japanese_name(st.session_state.pokemon_names[st.session_state.quiz_count])
+        # ポケモンの画像のURLを取得
+        pokemon_sprites_url = get_pokemon_sprites(st.session_state.pokemon_names[st.session_state.quiz_count])
+        if japanese_pokemon_name:
+            st.write(f"### {st.session_state.quiz_count + 1}問目: **{japanese_pokemon_name}**")
+            st.image(pokemon_sprites_url)
 
-# リセットボタンが押されたとき、新しいポケモンを取得
-if st.button("次のクイズへ"):
-    reset_quiz()
+            # ポケモンデータの取得
+            pokemon_data = get_pokemon_data(st.session_state.pokemon_names[st.session_state.quiz_count])
+            if pokemon_data:
+                # ポケモンのタイプ
+                pokemon_types = [t['type']['name'] for t in pokemon_data['types']]
+                # ポケモンの特性
+                pokemon_abilities = [a['ability']['name'] for a in pokemon_data['abilities']]
+                
+                # タイプの日本語と英語の対応表
+                type_translation = {'ノーマル': 'normal', 'ほのお': 'fire', 'みず': 'water', 'くさ': 'grass', 'でんき': 'electric', 'こおり': 'ice', 
+                                    'かくとう': 'fighting', 'どく': 'poison', 'じめん': 'ground', 'ひこう': 'flying', 'エスパー': 'psychic', 'むし': 'bug', 
+                                    'いわ': 'rock', 'ゴースト': 'ghost', 'ドラゴン': 'dragon', 'あく': 'dark', 'はがね': 'steel', 'フェアリー': 'fairy'}
+                # 特性の日本語と英語の対応表を取得
+                ability_translation = get_ability_translation()
 
-if st.session_state.pokemon_name:
-    # ポケモンの日本語名を取得
-    japanese_pokemon_name = get_japanese_name(st.session_state.pokemon_name)
-    # ポケモンの画像のURLを取得
-    pokemon_sprites_url = get_pokemon_sprites(st.session_state.pokemon_name)
-    if japanese_pokemon_name:
-        st.write(f"### {st.session_state.quiz_count + 1}問目: **{japanese_pokemon_name}**")
-        st.image(pokemon_sprites_url)
+                # ユーザーの回答入力
+                user_answer_japanese_types = st.multiselect(
+                    "このポケモンのタイプは何でしょう？",
+                    list(type_translation.keys())
+                )
+                user_answer_japanese_abilities = st.multiselect(
+                    f"このポケモンの特性は何でしょう？(ヒント：特性は {len(set(pokemon_abilities))} つ)",
+                    list(ability_translation.keys())
+                )
 
-        # ポケモンデータの取得
-        pokemon_data = get_pokemon_data(st.session_state.pokemon_name)
-        if pokemon_data:
-            # ポケモンのタイプ
-            pokemon_types = [t['type']['name'] for t in pokemon_data['types']]
-            # ポケモンの特性
-            pokemon_abilities = [a['ability']['name'] for a in pokemon_data['abilities']]
+                # 日本語のタイプと特性を英語に変換
+                user_answer_types = [type_translation[ja_type] for ja_type in user_answer_japanese_types]
+                user_answer_abilities = [ability_translation[ja_ability] for ja_ability in user_answer_japanese_abilities]
+
+                # 回答を提出　コールバック関数で連続押下を禁止
+                if st.button("回答を提出", on_click=disable_answer, disabled=st.session_state.answer_disabled):
+                    types_correct = set(user_answer_types) == set(pokemon_types)
+                    abilities_correct = set(user_answer_abilities) == set(pokemon_abilities)
+
+                    partial_types_correct = set(user_answer_types).issubset(set(pokemon_types))
+                    partial_abilities_correct = set(user_answer_abilities).issubset(set(pokemon_abilities))
+
+                    if types_correct and abilities_correct:
+                        st.success(f"正解です！ {japanese_pokemon_name} のタイプは {', '.join(user_answer_japanese_types)} で、特性は {', '.join(user_answer_japanese_abilities)} です。")
+                        st.session_state.score += 1
+                    else:
+                    #     if not user_answer_japanese_types:
+                    #         st.warning("タイプが回答されていません。")
+                    #     else:
+                    #         if not types_correct:
+                    #             if partial_types_correct:
+                    #                 st.error(f"不十分です。 {japanese_pokemon_name} のタイプは {', '.join(user_answer_japanese_types)} だけではありません。")
+                    #             else:
+                    #                 st.error(f"タイプが不正解です。 {japanese_pokemon_name} のタイプは {', '.join(user_answer_japanese_types)} ではありません。")
+                    #         else:
+                    #             st.success(f"タイプは正解です！ {japanese_pokemon_name} のタイプは {', '.join(user_answer_japanese_types)} です。")
+
+                    #     if not user_answer_japanese_abilities:
+                    #         st.warning("特性が回答されていません。")
+                    #     else:
+                    #         if not abilities_correct:
+                    #             if partial_abilities_correct:
+                    #                 st.error(f"不十分です。 {japanese_pokemon_name} の特性は {', '.join(user_answer_japanese_abilities)} だけではありません。")
+                    #             else:
+                    #                 st.error(f"特性が不正解です。 {japanese_pokemon_name} の特性は {', '.join(user_answer_japanese_abilities)} ではありません。")
+                    #         else:
+                    #             st.success(f"特性は正解です！ {japanese_pokemon_name} の特性は {', '.join(user_answer_japanese_abilities)} です。")                        
+
+                        # 正解のタイプと特性を日本語に変換
+                        type_translation_reversed = {v: k for k, v in type_translation.items()}
+                        ability_translation_reversed = {v: k for k, v in ability_translation.items()}
+                        correct_japanese_types = [type_translation_reversed[en_type] for en_type in pokemon_types]
+                        correct_japanese_abilities = [ability_translation_reversed[en_ability] for en_ability in pokemon_abilities]
+                        st.error(f"不正解です。正解は、タイプは {', '.join(correct_japanese_types)} で、特性は {', '.join(correct_japanese_abilities)} でした。")
+
+                    st.session_state.quiz_count += 1
+
+                    if st.session_state.quiz_count >= 5:
+                        st.write(f"#####  あなたの最終スコアは {st.session_state.score} / 5 です。")
+                        c.execute('UPDATE users SET score = ? WHERE name = ?', (st.session_state.score, name))
+                        conn.commit()
+                        st.session_state.quiz_count = 0
+                        st.session_state.score = 0
+                        st.button("終了", on_click=toggle_quiz_started)
+                    else:
+                        st.write(f"#####  現在のスコアは {st.session_state.score} / {st.session_state.quiz_count} です。")
+                        # ボタンが押されたとき、クイズをリセット
+                        st.button("次のクイズへ", on_click=reset_quiz)
+
+                    
+
+            else:
+                st.warning("ポケモンデータの取得に失敗しました。再試行してください。")
             
-            # タイプの日本語と英語の対応表
-            type_translation = {'ノーマル': 'normal', 'ほのお': 'fire', 'みず': 'water', 'くさ': 'grass', 'でんき': 'electric', 'こおり': 'ice', 
-                                'かくとう': 'fighting', 'どく': 'poison', 'じめん': 'ground', 'ひこう': 'flying', 'エスパー': 'psychic', 'むし': 'bug', 
-                                'いわ': 'rock', 'ゴースト': 'ghost', 'ドラゴン': 'dragon', 'あく': 'dark', 'はがね': 'steel', 'フェアリー': 'fairy'}
-            # 特性の日本語と英語の対応表を取得
-            ability_translation = get_ability_translation()
-
-            # ユーザーの回答入力
-            user_answer_japanese_types = st.multiselect(
-                "このポケモンのタイプは何でしょう？",
-                list(type_translation.keys())
-            )
-            user_answer_japanese_abilities = st.multiselect(
-                f"このポケモンの特性は何でしょう？(ヒント：特性は {len(set(pokemon_abilities))} つ)",
-                list(ability_translation.keys())
-            )
-
-            # 日本語のタイプと特性を英語に変換
-            user_answer_types = [type_translation[ja_type] for ja_type in user_answer_japanese_types]
-            user_answer_abilities = [ability_translation[ja_ability] for ja_ability in user_answer_japanese_abilities]
-
-            if st.button("回答を提出"):
-                types_correct = set(user_answer_types) == set(pokemon_types)
-                abilities_correct = set(user_answer_abilities) == set(pokemon_abilities)
-
-                partial_types_correct = set(user_answer_types).issubset(set(pokemon_types))
-                partial_abilities_correct = set(user_answer_abilities).issubset(set(pokemon_abilities))
-
-                if types_correct and abilities_correct:
-                    st.success(f"正解です！ {japanese_pokemon_name} のタイプは {', '.join(user_answer_japanese_types)} で、特性は {', '.join(user_answer_japanese_abilities)} です。")
-                    st.session_state.score += 1
-                else:
-                #     if not user_answer_japanese_types:
-                #         st.warning("タイプが回答されていません。")
-                #     else:
-                #         if not types_correct:
-                #             if partial_types_correct:
-                #                 st.error(f"不十分です。 {japanese_pokemon_name} のタイプは {', '.join(user_answer_japanese_types)} だけではありません。")
-                #             else:
-                #                 st.error(f"タイプが不正解です。 {japanese_pokemon_name} のタイプは {', '.join(user_answer_japanese_types)} ではありません。")
-                #         else:
-                #             st.success(f"タイプは正解です！ {japanese_pokemon_name} のタイプは {', '.join(user_answer_japanese_types)} です。")
-
-                #     if not user_answer_japanese_abilities:
-                #         st.warning("特性が回答されていません。")
-                #     else:
-                #         if not abilities_correct:
-                #             if partial_abilities_correct:
-                #                 st.error(f"不十分です。 {japanese_pokemon_name} の特性は {', '.join(user_answer_japanese_abilities)} だけではありません。")
-                #             else:
-                #                 st.error(f"特性が不正解です。 {japanese_pokemon_name} の特性は {', '.join(user_answer_japanese_abilities)} ではありません。")
-                #         else:
-                #             st.success(f"特性は正解です！ {japanese_pokemon_name} の特性は {', '.join(user_answer_japanese_abilities)} です。")                        
-
-                    # 正解のタイプと特性を日本語に変換
-                    type_translation_reversed = {v: k for k, v in type_translation.items()}
-                    ability_translation_reversed = {v: k for k, v in ability_translation.items()}
-                    correct_japanese_types = [type_translation_reversed[en_type] for en_type in pokemon_types]
-                    correct_japanese_abilities = [ability_translation_reversed[en_ability] for en_ability in pokemon_abilities]
-                    st.error(f"不正解です。正解は、タイプは {', '.join(correct_japanese_types)} で、特性は {', '.join(correct_japanese_abilities)} でした。")
-
-                st.session_state.quiz_count += 1
-
-                if st.session_state.quiz_count >= 5:
-                    st.write(f"#####  あなたの最終スコアは {st.session_state.score} / 5 です。")
-                    c.execute('UPDATE users SET score = ? WHERE name = ?', (st.session_state.score, name))
-                    conn.commit()
-                    st.session_state.quiz_count = 0
-                    st.session_state.score = 0
-                    st.button("終了")
-                else:
-                    st.write(f"#####  現在のスコアは {st.session_state.score} / {st.session_state.quiz_count} です。")
-
-                st.write("[次のクイズへ]を押してください")    
-
         else:
             st.warning("ポケモンデータの取得に失敗しました。再試行してください。")
-        
     else:
         st.warning("ポケモンデータの取得に失敗しました。再試行してください。")
-else:
-    st.warning("ポケモンデータの取得に失敗しました。再試行してください。")
 
 
 # データベースをクローズする
