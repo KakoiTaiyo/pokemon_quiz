@@ -74,7 +74,7 @@ def disable_answer():
 # スタートボタンを切り替える関数
 def toggle_quiz_started():
     st.session_state.quiz_started = not st.session_state.quiz_started
-# コールバック用の関数
+# スタートボタンを押した時のコールバック用の関数
 def quiz_start():
     toggle_quiz_started()
     st.session_state.pokemon_names = get_random_pokemon_names()
@@ -130,7 +130,6 @@ def get_ability_translation():
 
 # 回答と回答権を戻す関数
 def reset_quiz():
-    # st.session_state.pokemon_names = get_random_pokemon_names()
     st.session_state.user_answer_types = []
     st.session_state.user_answer_abilities = []
     st.session_state.answer_disabled = False
@@ -140,12 +139,7 @@ st.write("ランダムで表示されるポケモンのタイプと特性を当�
 
 if not st.session_state.quiz_started:
     st.button("スタート", on_click=quiz_start)
-        # st.session_state.pokemon_names = get_random_pokemon_names()
 else:
-    # # セッション状態にポケモンの名前が保存されていない場合、新しいポケモンを取得
-    # if 'pokemon_names' not in st.session_state or st.session_state.pokemon_names is None:
-    #     st.session_state.pokemon_names = get_random_pokemon_names()
-
     if st.session_state.pokemon_names:
         # ポケモンの日本語名を取得
         japanese_pokemon_name = get_japanese_name(st.session_state.pokemon_names[st.session_state.quiz_count])
