@@ -4,12 +4,6 @@ import requests
 import random
 import json
 import sqlite3
-import os
-
-# データベースファイルを削除
-db_path = 'users.db'
-if os.path.exists(db_path):
-    os.remove(db_path)
 
 # データベースに接続
 conn = sqlite3.connect('users.db')
