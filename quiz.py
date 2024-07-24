@@ -1,4 +1,5 @@
 import streamlit as st
+import pandas as pd
 import requests
 import random
 import json
@@ -8,6 +9,17 @@ import sqlite3
 conn = sqlite3.connect('users.db')
 c = conn.cursor()
 
+# データベースにテーブルを作成する
+c.execute('''
+    CREATE TABLE IF NOT EXISTS users (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT UNIQUE,
+        score INTEGER DEFAULT 0,
+        last_used TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        keyword TEXT
+    )
+''')
+
 # データを表示する関数
 def show_data():
     c.execute('SELECT name, score FROM users')
@@ -16,28 +28,39 @@ def show_data():
         st.sidebar.write(f"ユーザー名: {d[0]}, スコア: {d[1]}")
 
 # ユーザーを追加する関数
-def add_user(name):
+def add_user(name, keyword=None):
     try:
-        c.execute('INSERT INTO users (name) VALUES (?)', (name,))
+        if keyword:
+            c.execute('INSERT INTO users (name, keyword) VALUES (?, ?)', (name, keyword))
+        else:
+            c.execute('INSERT INTO users (name) VALUES (?)', (name,))
         conn.commit()
         st.sidebar.write(f'{name} さんが追加されました。')
     except sqlite3.IntegrityError:
         st.sidebar.write(f'{name} さんはすでに登録されています。')
 
-# データベースにテーブルを作成する
-c.execute('''
-    CREATE TABLE IF NOT EXISTS users (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT UNIQUE,
-        score INTEGER DEFAULT 0
-    )
-''')
+# 直近に利用した同じ合言葉のユーザー(max5人)を表示する関数
+def show_recent_users(keyword):
+    c.execute('SELECT name, score FROM users WHERE keyword = ? ORDER BY score DESC, last_used DESC LIMIT 5', (keyword,))
+    data = c.fetchall()
+    st.sidebar.write("### 同じ合言葉のユーザー")
+    if data:
+        # データをDataFrameに変換
+        df = pd.DataFrame(data, columns=["ユーザー", "スコア"])
+        # インデックスを1から始める
+        df.index = df.index + 1
+        # 表形式で表示
+        st.sidebar.table(df)
+    else:
+        st.sidebar.write("該当するユーザーがいません。")
 
 # ユーザーの追加
+st.sidebar.write("ユーザー名を追加してクイズに参加するとスコアが記録されます。  \n合言葉を入力すると、同じ合言葉を入力したユーザーのスコアが表示されます。")
 name = st.sidebar.text_input('ユーザー名')
+keyword = st.sidebar.text_input('合言葉（任意）')
 if st.sidebar.button('ユーザーを追加'):
     if name:
-        add_user(name)
+        add_user(name, keyword)
         st.session_state.current_user = name
     else:
         st.sidebar.warning("名前を入力してください。")
@@ -50,8 +73,9 @@ if st.session_state.current_user is not None:
     c.execute('SELECT score FROM users WHERE name = ?', (st.session_state.current_user,))
     score = c.fetchone()[0]
     st.sidebar.write(f' {st.session_state.current_user} さんの前回のスコアは {score} です。')
-else:
-    st.sidebar.write("ユーザー名を入力してください。")
+
+if keyword:
+    show_recent_users(keyword)
 
 # データの表示
 # show_data()
@@ -186,10 +210,17 @@ else:
                     partial_types_correct = set(user_answer_types).issubset(set(pokemon_types))
                     partial_abilities_correct = set(user_answer_abilities).issubset(set(pokemon_abilities))
 
+                    # 正解のタイプと特性を日本語に変換
+                    type_translation_reversed = {v: k for k, v in type_translation.items()}
+                    ability_translation_reversed = {v: k for k, v in ability_translation.items()}
+                    correct_japanese_types = [type_translation_reversed[en_type] for en_type in pokemon_types]
+                    correct_japanese_abilities = [ability_translation_reversed[en_ability] for en_ability in pokemon_abilities]
+
                     if types_correct and abilities_correct:
-                        st.success(f"正解です！ {japanese_pokemon_name} のタイプは {', '.join(user_answer_japanese_types)} で、特性は {', '.join(user_answer_japanese_abilities)} です。")
+                        st.success(f"正解です！ {japanese_pokemon_name} のタイプは {', '.join(correct_japanese_types)} で、特性は {', '.join(correct_japanese_abilities)} です。")
                         st.session_state.score += 1
                     else:
+                        st.error(f"不正解です。正解は、タイプは {', '.join(correct_japanese_types)} で、特性は {', '.join(correct_japanese_abilities)} でした。")
                     #     if not user_answer_japanese_types:
                     #         st.warning("タイプが回答されていません。")
                     #     else:
@@ -212,13 +243,6 @@ else:
                     #         else:
                     #             st.success(f"特性は正解です！ {japanese_pokemon_name} の特性は {', '.join(user_answer_japanese_abilities)} です。")                        
 
-                        # 正解のタイプと特性を日本語に変換
-                        type_translation_reversed = {v: k for k, v in type_translation.items()}
-                        ability_translation_reversed = {v: k for k, v in ability_translation.items()}
-                        correct_japanese_types = [type_translation_reversed[en_type] for en_type in pokemon_types]
-                        correct_japanese_abilities = [ability_translation_reversed[en_ability] for en_ability in pokemon_abilities]
-                        st.error(f"不正解です。正解は、タイプは {', '.join(correct_japanese_types)} で、特性は {', '.join(correct_japanese_abilities)} でした。")
-
                     st.session_state.quiz_count += 1
 
                     if st.session_state.quiz_count >= 5:
@@ -231,7 +255,7 @@ else:
                     else:
                         st.write(f"#####  現在のスコアは {st.session_state.score} / {st.session_state.quiz_count} です。")
                         # ボタンが押されたとき、クイズをリセット
-                        st.button("次のクイズへ", on_click=reset_quiz)
+                        st.button("次へ", on_click=reset_quiz)
 
                     
 
