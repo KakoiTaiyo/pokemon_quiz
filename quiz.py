@@ -89,8 +89,8 @@ if 'quiz_started' not in st.session_state:
     st.session_state.quiz_started = False
 if 'answer_disabled' not in st.session_state:
     st.session_state.answer_disabled = False
-if 'pokemon_names' not in st.session_state:
-    st.session_state.pokemon_names = []
+if 'pokemon_numbers' not in st.session_state:
+    st.session_state.pokemon_numbers = []
 
 # 回答ボタンを連続で押せなくする関数
 def disable_answer():
@@ -101,44 +101,55 @@ def toggle_quiz_started():
 # スタートボタンを押した時のコールバック用の関数
 def quiz_start():
     toggle_quiz_started()
-    st.session_state.pokemon_names = get_random_pokemon_names()
+    st.session_state.pokemon_numbers = get_random_pokemon_numbers()
     reset_quiz()
 
 # PokeAPIからポケモンのデータを取得する関数
-def get_pokemon_data(pokemon_name):
-    url = f"https://pokeapi.co/api/v2/pokemon/{pokemon_name.lower()}"
+def get_pokemon_data(pokemon_number):
+    url = f"https://pokeapi.co/api/v2/pokemon/{pokemon_number}"
     response = requests.get(url)
     if response.status_code == 200:
         return response.json()
     else:
         return None
 
-# ランダムなポケモン5匹の名前を取得する関数
-def get_random_pokemon_names(count=5):
-    url = "https://pokeapi.co/api/v2/pokemon?limit=1025"
-    response = requests.get(url)
-    if response.status_code == 200:
-        data = response.json()
-        all_pokemon = data['results']
-        random_pokemon = random.sample(all_pokemon, count)
-        return [pokemon['name'] for pokemon in random_pokemon]
-    else:
-        return []
+# ポケモンと日本語名の辞書を取得する関数
+def load_pokemon_list():
+    with open('pokemon_list.json', 'r', encoding='utf-8') as file:
+        pokemon_list = json.load(file)
+    return pokemon_list
+
+# ランダムなポケモン5匹の番号を取得する関数
+def get_random_pokemon_numbers():
+    # url = "https://pokeapi.co/api/v2/pokemon?limit=1025"
+    # response = requests.get(url)
+    # if response.status_code == 200:
+    #     data = response.json()
+    #     all_pokemon = data['results']
+    #     random_pokemon = random.sample(all_pokemon, 5)
+    #     return [pokemon['name'] for pokemon in random_pokemon]
+    # else:
+    #     return []
+    return random.sample(list(pokemon_list.values()), 5)
 
 # 日本語のポケモン名を取得する関数
-def get_japanese_name(english_name):
-    url = f"https://pokeapi.co/api/v2/pokemon-species/{english_name.lower()}"
-    response = requests.get(url)
-    if response.status_code == 200:
-        data = response.json()
-        for name_info in data['names']:
-            if name_info['language']['name'] == 'ja-Hrkt':
-                return name_info['name']
+def get_japanese_name(pokemon_number):
+    # url = f"https://pokeapi.co/api/v2/pokemon-species/{english_name.lower()}"
+    # response = requests.get(url)
+    # if response.status_code == 200:
+    #     data = response.json()
+    #     for name_info in data['names']:
+    #         if name_info['language']['name'] == 'ja-Hrkt':
+    #             return name_info['name']
+    # return None
+    for key, val in pokemon_list.items():
+        if val == pokemon_number:
+            return key
     return None
 
 # ポケモンの見た目の画像のURLを取得する関数
-def get_pokemon_sprites(pokemon_name):
-    url = f"https://pokeapi.co/api/v2/pokemon/{pokemon_name.lower()}"
+def get_pokemon_sprites(pokemon_number):
+    url = f"https://pokeapi.co/api/v2/pokemon/{pokemon_number}"
     response = requests.get(url)
     if response.status_code == 200:
         data = response.json()
@@ -158,23 +169,35 @@ def reset_quiz():
     st.session_state.user_answer_abilities = []
     st.session_state.answer_disabled = False
 
+# 出題ポケモンの名前と番号の辞書を取得
+pokemon_list = load_pokemon_list()
+
 st.title("ポケモンクイズ")
 st.write("ランダムで表示されるポケモンのタイプと特性を当ててみてください！  \nタイプと特性を両方正解で１ポイント！  \n全５問のスコアが記録されます！")
 
 if not st.session_state.quiz_started:
     st.button("スタート", on_click=quiz_start)
 else:
-    if st.session_state.pokemon_names:
+    if st.session_state.pokemon_numbers:
         # ポケモンの日本語名を取得
-        japanese_pokemon_name = get_japanese_name(st.session_state.pokemon_names[st.session_state.quiz_count])
+        japanese_pokemon_name = get_japanese_name(st.session_state.pokemon_numbers[st.session_state.quiz_count])
         # ポケモンの画像のURLを取得
-        pokemon_sprites_url = get_pokemon_sprites(st.session_state.pokemon_names[st.session_state.quiz_count])
+        pokemon_sprites_url = get_pokemon_sprites(st.session_state.pokemon_numbers[st.session_state.quiz_count])
         if japanese_pokemon_name:
             st.write(f"### {st.session_state.quiz_count + 1}問目: **{japanese_pokemon_name}**")
-            st.image(pokemon_sprites_url)
+            if pokemon_sprites_url:
+                # 列を使って画像を中央に配置
+                col1, col2, col3 = st.columns([1, 2, 1])
+                
+                with col1:
+                    st.write("")  # 空のコンテンツを追加して左側のスペースを作成
+                with col2:
+                    st.image(pokemon_sprites_url)  # 中央に画像を配置
+                with col3:
+                    st.write("")  # 空のコンテンツを追加して右側のスペースを作成
 
             # ポケモンデータの取得
-            pokemon_data = get_pokemon_data(st.session_state.pokemon_names[st.session_state.quiz_count])
+            pokemon_data = get_pokemon_data(st.session_state.pokemon_numbers[st.session_state.quiz_count])
             if pokemon_data:
                 # ポケモンのタイプ
                 pokemon_types = [t['type']['name'] for t in pokemon_data['types']]
